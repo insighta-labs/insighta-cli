@@ -7,6 +7,7 @@ mod client;
 mod credentials;
 mod error;
 mod output;
+mod profiles;
 
 #[tokio::main]
 async fn main() {
@@ -16,6 +17,7 @@ async fn main() {
         Commands::Login => auth::login().await,
         Commands::Logout => auth::logout().await,
         Commands::Whoami => auth::whoami(),
+        Commands::Profiles { command } => profiles::handle(command).await,
     };
 
     if let Err(e) = result {
