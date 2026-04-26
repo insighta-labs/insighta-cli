@@ -2,8 +2,7 @@ use serde_json::Value;
 
 use crate::{
     cli::ProfileCommands,
-    client::{api_get, api_post},
-    credentials,
+    client::{api_get, api_post, raw_get},
     error::{CliError, Result},
     output,
 };
@@ -202,20 +201,11 @@ async fn export(format: &str, gender: Option<String>, country: Option<String>) -
         query.push(("country_id", c));
     }
 
-    // Export returns raw CSV bytes, not JSON, so we bypass the shared client
-    // and make the request directly to handle the binary response.
-    let creds = credentials::load()?;
-    let client = reqwest::Client::new();
-
-    let response = client
-        .get("http://localhost:8000/api/profiles/export")
-        .header("Authorization", format!("Bearer {}", creds.access_token))
-        .header("X-API-Version", "1")
-        .query(&query)
-        .send()
-        .await?;
-
+    // raw_get handles auth and token refresh while returning the binary body directly.
+    let response = raw_get("/api/profiles/export", &query).await;
     pb.finish_and_clear();
+
+    let response = response?;
 
     if !response.status().is_success() {
         let json: serde_json::Value = response.json().await.unwrap_or_default();

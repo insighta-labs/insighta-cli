@@ -122,7 +122,3 @@ pub async fn api_get(path: &str, query: &[(&str, &str)]) -> Result<Value> {
 pub async fn api_post(path: &str, body: Value) -> Result<Value> {
     request(Method::POST, path, &[], Some(body)).await
 }
-
-pub async fn api_delete(path: &str) -> Result<Value> {
-    request(Method::DELETE, path, &[], None).await
-}
