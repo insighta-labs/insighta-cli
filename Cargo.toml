@@ -1,0 +1,17 @@
+[package]
+name = "insighta-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+comfy-table = "7.2.2"
+dirs = "6.0.0"
+indicatif = "0.18.4"
+reqwest = "0.13.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+
+
+[[bin]]
+name = "insighta"
+path = "src/main.rs"
