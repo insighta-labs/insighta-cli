@@ -59,12 +59,8 @@ pub fn save(creds: &Credentials) -> Result<()> {
         std::fs::create_dir_all(parent)?;
     }
 
-    let raw = serde_json::to_string_pretty(creds).map_err(|e| {
-        CliError::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-        ))
-    })?;
+    let raw = serde_json::to_string_pretty(creds)
+        .map_err(|e| CliError::Io(std::io::Error::other(e.to_string())))?;
 
     std::fs::write(&path, raw)?;
     Ok(())

@@ -7,6 +7,18 @@ use crate::{
     output,
 };
 
+struct ListOptions {
+    gender: Option<String>,
+    country: Option<String>,
+    age_group: Option<String>,
+    min_age: Option<u8>,
+    max_age: Option<u8>,
+    sort_by: Option<String>,
+    order: Option<String>,
+    page: u32,
+    limit: u32,
+}
+
 pub async fn handle(cmd: ProfileCommands) -> Result<()> {
     match cmd {
         ProfileCommands::List {
@@ -20,9 +32,17 @@ pub async fn handle(cmd: ProfileCommands) -> Result<()> {
             page,
             limit,
         } => {
-            list(
-                gender, country, age_group, min_age, max_age, sort_by, order, page, limit,
-            )
+            list(ListOptions {
+                gender,
+                country,
+                age_group,
+                min_age,
+                max_age,
+                sort_by,
+                order,
+                page,
+                limit,
+            })
             .await
         }
 
@@ -40,33 +60,23 @@ pub async fn handle(cmd: ProfileCommands) -> Result<()> {
     }
 }
 
-async fn list(
-    gender: Option<String>,
-    country: Option<String>,
-    age_group: Option<String>,
-    min_age: Option<u8>,
-    max_age: Option<u8>,
-    sort_by: Option<String>,
-    order: Option<String>,
-    page: u32,
-    limit: u32,
-) -> Result<()> {
+async fn list(options: ListOptions) -> Result<()> {
     let pb = output::spinner("Fetching profiles");
 
-    let page_s = page.to_string();
-    let limit_s = limit.to_string();
-    let min_age_s = min_age.map(|v| v.to_string());
-    let max_age_s = max_age.map(|v| v.to_string());
+    let page_s = options.page.to_string();
+    let limit_s = options.limit.to_string();
+    let min_age_s = options.min_age.map(|v| v.to_string());
+    let max_age_s = options.max_age.map(|v| v.to_string());
 
     let mut query: Vec<(&str, &str)> = vec![("page", &page_s), ("limit", &limit_s)];
 
-    if let Some(ref g) = gender {
+    if let Some(ref g) = options.gender {
         query.push(("gender", g));
     }
-    if let Some(ref c) = country {
+    if let Some(ref c) = options.country {
         query.push(("country_id", c));
     }
-    if let Some(ref a) = age_group {
+    if let Some(ref a) = options.age_group {
         query.push(("age_group", a));
     }
     if let Some(ref m) = min_age_s {
@@ -75,10 +85,10 @@ async fn list(
     if let Some(ref m) = max_age_s {
         query.push(("max_age", m));
     }
-    if let Some(ref s) = sort_by {
+    if let Some(ref s) = options.sort_by {
         query.push(("sort_by", s));
     }
-    if let Some(ref o) = order {
+    if let Some(ref o) = options.order {
         query.push(("order", o));
     }
 
@@ -97,7 +107,7 @@ async fn list(
     let total_pages = res["total_pages"].as_u64().unwrap_or(1);
     println!(
         "Showing page {} of {} ({} total)\n",
-        page, total_pages, total
+        options.page, total_pages, total
     );
 
     print_profile_table(&profiles);

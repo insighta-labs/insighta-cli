@@ -69,7 +69,7 @@ fn wait_for_callback(port: u16) -> Result<(String, String)> {
         <html><body><p>Authentication complete. You can close this tab.</p></body></html>";
     stream.write_all(response.as_bytes())?;
 
-    let query = path.splitn(2, '?').nth(1).unwrap_or("");
+    let query = path.split_once('?').map(|x| x.1).unwrap_or_default();
     let mut code = None;
     let mut state = None;
 
@@ -107,10 +107,10 @@ pub async fn login() -> Result<()> {
 
     println!("Opening GitHub in your browser...");
     open::that(&auth_url).map_err(|e| {
-        CliError::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("Could not open browser: {}", e),
-        ))
+        CliError::Io(std::io::Error::other(format!(
+            "Could not open browser: {}",
+            e
+        )))
     })?;
 
     let pb = output::spinner("Waiting for GitHub authorization");
