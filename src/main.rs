@@ -4,6 +4,7 @@ use cli::{Cli, Commands};
 mod auth;
 mod cli;
 mod client;
+mod config;
 mod credentials;
 mod error;
 mod output;

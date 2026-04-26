@@ -2,11 +2,10 @@ use reqwest::{Method, Response};
 use serde_json::Value;
 
 use crate::{
+    config,
     credentials::{self, Credentials},
     error::{CliError, Result},
 };
-
-const BACKEND_URL: &str = "http://localhost:8000";
 
 #[derive(serde::Deserialize)]
 struct RefreshResponse {
@@ -18,7 +17,7 @@ struct RefreshResponse {
 async fn refresh_credentials(creds: &Credentials) -> Result<Credentials> {
     let client = reqwest::Client::new();
     let res = client
-        .post(format!("{}/auth/refresh", BACKEND_URL))
+        .post(format!("{}/auth/refresh", config::backend_url()))
         .json(&serde_json::json!({ "refresh_token": creds.refresh_token }))
         .send()
         .await?
@@ -61,6 +60,21 @@ pub async fn request(
     parse_response(response).await
 }
 
+/// Sends an authenticated GET and returns the raw response without parsing JSON.
+pub async fn raw_get(path: &str, query: &[(&str, &str)]) -> Result<Response> {
+    let mut creds = credentials::load()?;
+    let client = reqwest::Client::new();
+
+    let response = send_request(&client, &Method::GET, path, query, &None, &creds).await?;
+
+    if response.status().as_u16() == 401 {
+        creds = refresh_credentials(&creds).await?;
+        return send_request(&client, &Method::GET, path, query, &None, &creds).await;
+    }
+
+    Ok(response)
+}
+
 async fn send_request(
     client: &reqwest::Client,
     method: &Method,
@@ -69,7 +83,7 @@ async fn send_request(
     body: &Option<Value>,
     creds: &Credentials,
 ) -> Result<Response> {
-    let url = format!("{}{}", BACKEND_URL, path);
+    let url = format!("{}{}", config::backend_url(), path);
     let mut req = client
         .request(method.clone(), &url)
         .header("Authorization", format!("Bearer {}", creds.access_token))

@@ -8,13 +8,11 @@ use rand::Rng;
 use sha2::{Digest, Sha256};
 
 use crate::{
+    config,
     credentials::{self, Credentials},
     error::{CliError, Result},
     output,
 };
-
-const CALLBACK_PORT: u16 = 8182;
-const BACKEND_URL: &str = "http://localhost:8000";
 
 fn generate_code_verifier() -> String {
     let mut bytes = [0u8; 32];
@@ -47,11 +45,11 @@ fn extract_username_from_token(token: &str) -> Option<String> {
     json["username"].as_str().map(|s| s.to_string())
 }
 
-fn wait_for_callback() -> Result<(String, String)> {
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", CALLBACK_PORT)).map_err(|e| {
+fn wait_for_callback(port: u16) -> Result<(String, String)> {
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).map_err(|e| {
         CliError::Io(std::io::Error::new(
             e.kind(),
-            format!("Could not bind to port {}: {}", CALLBACK_PORT, e),
+            format!("Could not bind to port {}: {}", port, e),
         ))
     })?;
 
@@ -93,15 +91,18 @@ fn wait_for_callback() -> Result<(String, String)> {
 }
 
 pub async fn login() -> Result<()> {
+    let port = config::callback_port();
+    let backend = config::backend_url();
+
     let verifier = generate_code_verifier();
     let challenge = derive_code_challenge(&verifier);
     let state = generate_state();
 
-    let redirect_uri = format!("http://localhost:{}/callback", CALLBACK_PORT);
+    let redirect_uri = format!("http://localhost:{}/callback", port);
 
     let auth_url = format!(
         "{}/auth/github?state={}&code_challenge={}&redirect_uri={}",
-        BACKEND_URL, state, challenge, redirect_uri
+        backend, state, challenge, redirect_uri
     );
 
     println!("Opening GitHub in your browser...");
@@ -113,7 +114,7 @@ pub async fn login() -> Result<()> {
     })?;
 
     let pb = output::spinner("Waiting for GitHub authorization");
-    let (code, returned_state) = wait_for_callback()?;
+    let (code, returned_state) = wait_for_callback(port)?;
     pb.finish_and_clear();
 
     if returned_state != state {
@@ -124,7 +125,7 @@ pub async fn login() -> Result<()> {
 
     let client = reqwest::Client::new();
     let res = client
-        .get(format!("{}/auth/github/callback", BACKEND_URL))
+        .get(format!("{}/auth/github/callback", backend))
         .query(&[
             ("code", code.as_str()),
             ("state", returned_state.as_str()),
@@ -175,7 +176,7 @@ pub async fn logout() -> Result<()> {
 
     let client = reqwest::Client::new();
     client
-        .post(format!("{}/auth/logout", BACKEND_URL))
+        .post(format!("{}/auth/logout", config::backend_url()))
         .json(&serde_json::json!({ "refresh_token": creds.refresh_token }))
         .send()
         .await
