@@ -68,5 +68,15 @@ pub enum ProfileCommands {
         gender: Option<String>,
         #[arg(long)]
         country: Option<String>,
+        #[arg(long, name = "age-group")]
+        age_group: Option<String>,
+        #[arg(long, name = "min-age")]
+        min_age: Option<u8>,
+        #[arg(long, name = "max-age")]
+        max_age: Option<u8>,
+        #[arg(long, name = "sort-by")]
+        sort_by: Option<String>,
+        #[arg(long)]
+        order: Option<String>,
     },
 }
