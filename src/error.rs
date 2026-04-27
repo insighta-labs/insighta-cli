@@ -28,9 +28,9 @@ impl fmt::Display for CliError {
                     "Session expired. Run `insighta login` to re-authenticate."
                 )
             }
-            CliError::Api(msg) => write!(f, "API error: {}", msg),
-            CliError::Io(e) => write!(f, "IO error: {}", e),
-            CliError::Http(e) => write!(f, "HTTP error: {}", e),
+            CliError::Api(msg) => write!(f, "API error: {msg}"),
+            CliError::Io(e) => write!(f, "IO error: {e}"),
+            CliError::Http(e) => write!(f, "HTTP error: {e}"),
         }
     }
 }
