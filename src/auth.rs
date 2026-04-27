@@ -85,10 +85,7 @@ async fn wait_for_callback(listener: tokio::net::TcpListener) -> Result<(String,
 
     if let Some(err) = error {
         let msg = error_description.unwrap_or(err);
-        return Err(CliError::Api(format!(
-            "GitHub authorization failed: {}",
-            msg
-        )));
+        return Err(CliError::Api(format!("GitHub authorization failed: {msg}")));
     }
 
     match (code, state) {
@@ -107,28 +104,26 @@ pub async fn login() -> Result<()> {
     let challenge = derive_code_challenge(&verifier);
     let state = generate_state();
 
-    let redirect_uri = format!("http://127.0.0.1:{}/callback", port);
+    let redirect_uri = format!("http://127.0.0.1:{port}/callback");
     let encoded_redirect = urlencoding::encode(&redirect_uri);
 
     let auth_url = format!(
-        "{}/auth/github?state={}&code_challenge={}&redirect_uri={}",
-        backend, state, challenge, encoded_redirect
+        "{backend}/auth/github?state={state}&code_challenge={challenge}&redirect_uri={encoded_redirect}"
     );
 
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}"))
         .await
         .map_err(|e| {
             CliError::Io(std::io::Error::new(
                 e.kind(),
-                format!("Could not bind to port {}: {}", port, e),
+                format!("Could not bind to port {port}: {e}"),
             ))
         })?;
 
     println!("Opening GitHub in your browser...");
     open::that(&auth_url).map_err(|e| {
         CliError::Io(std::io::Error::other(format!(
-            "Could not open browser: {}",
-            e
+            "Could not open browser: {e}"
         )))
     })?;
 
@@ -153,7 +148,7 @@ pub async fn login() -> Result<()> {
 
     let client = reqwest::Client::new();
     let res = client
-        .get(format!("{}/auth/github/callback", backend))
+        .get(format!("{backend}/auth/github/callback"))
         .query(&[
             ("code", code.as_str()),
             ("state", returned_state.as_str()),
@@ -195,7 +190,7 @@ pub async fn login() -> Result<()> {
         username: username.clone(),
     })?;
 
-    output::print_success(&format!("Logged in as @{}", username));
+    output::print_success(&format!("Logged in as @{username}"));
     Ok(())
 }
 
@@ -225,8 +220,7 @@ pub async fn logout() -> Result<()> {
                 output::print_success("Logged out.");
             } else {
                 output::print_success(&format!(
-                    "Logged out. (Warning: server responded with {})",
-                    status
+                    "Logged out. (Warning: server responded with {status})"
                 ));
             }
         }
@@ -243,6 +237,6 @@ pub async fn whoami() -> Result<()> {
     let res = res?;
     let username = res["data"]["username"].as_str().unwrap_or("unknown");
     let role = res["data"]["role"].as_str().unwrap_or("analyst");
-    output::print_success(&format!("Logged in as @{} ({})", username, role));
+    output::print_success(&format!("Logged in as @{username} ({role})"));
     Ok(())
 }
