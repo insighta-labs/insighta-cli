@@ -17,7 +17,7 @@ async fn main() {
     let result = match cli.command {
         Commands::Login => auth::login().await,
         Commands::Logout => auth::logout().await,
-        Commands::Whoami => auth::whoami(),
+        Commands::Whoami => auth::whoami().await,
         Commands::Profiles { command } => profiles::handle(command).await,
     };
 
