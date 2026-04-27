@@ -56,7 +56,17 @@ pub async fn handle(cmd: ProfileCommands) -> Result<()> {
             format,
             gender,
             country,
-        } => export(&format, gender, country).await,
+            age_group,
+            min_age,
+            max_age,
+            sort_by,
+            order,
+        } => {
+            export(
+                &format, gender, country, age_group, min_age, max_age, sort_by, order,
+            )
+            .await
+        }
     }
 }
 
@@ -200,8 +210,21 @@ async fn create(name: &str) -> Result<()> {
     Ok(())
 }
 
-async fn export(format: &str, gender: Option<String>, country: Option<String>) -> Result<()> {
+#[allow(clippy::too_many_arguments)]
+async fn export(
+    format: &str,
+    gender: Option<String>,
+    country: Option<String>,
+    age_group: Option<String>,
+    min_age: Option<u8>,
+    max_age: Option<u8>,
+    sort_by: Option<String>,
+    order: Option<String>,
+) -> Result<()> {
     let pb = output::spinner("Exporting profiles");
+
+    let min_age_s = min_age.map(|v| v.to_string());
+    let max_age_s = max_age.map(|v| v.to_string());
 
     let mut query: Vec<(&str, &str)> = vec![("format", format)];
     if let Some(ref g) = gender {
@@ -209,6 +232,21 @@ async fn export(format: &str, gender: Option<String>, country: Option<String>) -
     }
     if let Some(ref c) = country {
         query.push(("country_id", c));
+    }
+    if let Some(ref a) = age_group {
+        query.push(("age_group", a));
+    }
+    if let Some(ref m) = min_age_s {
+        query.push(("min_age", m));
+    }
+    if let Some(ref m) = max_age_s {
+        query.push(("max_age", m));
+    }
+    if let Some(ref s) = sort_by {
+        query.push(("sort_by", s));
+    }
+    if let Some(ref o) = order {
+        query.push(("order", o));
     }
 
     // raw_get handles auth and token refresh while returning the binary body directly.

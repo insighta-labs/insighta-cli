@@ -38,16 +38,7 @@ fn extract_username_from_token(token: &str) -> Option<String> {
     json["username"].as_str().map(|s| s.to_string())
 }
 
-async fn wait_for_callback(port: u16) -> Result<(String, String)> {
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
-        .await
-        .map_err(|e| {
-            CliError::Io(std::io::Error::new(
-                e.kind(),
-                format!("Could not bind to port {}: {}", port, e),
-            ))
-        })?;
-
+async fn wait_for_callback(listener: tokio::net::TcpListener) -> Result<(String, String)> {
     let (stream, _) = listener.accept().await.map_err(CliError::Io)?;
     let (read_half, mut write_half) = stream.into_split();
     let mut reader = BufReader::new(read_half);
@@ -116,13 +107,22 @@ pub async fn login() -> Result<()> {
     let challenge = derive_code_challenge(&verifier);
     let state = generate_state();
 
-    let redirect_uri = format!("http://localhost:{}/callback", port);
+    let redirect_uri = format!("http://127.0.0.1:{}/callback", port);
     let encoded_redirect = urlencoding::encode(&redirect_uri);
 
     let auth_url = format!(
         "{}/auth/github?state={}&code_challenge={}&redirect_uri={}",
         backend, state, challenge, encoded_redirect
     );
+
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
+        .await
+        .map_err(|e| {
+            CliError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Could not bind to port {}: {}", port, e),
+            ))
+        })?;
 
     println!("Opening GitHub in your browser...");
     open::that(&auth_url).map_err(|e| {
@@ -135,7 +135,7 @@ pub async fn login() -> Result<()> {
     let pb = output::spinner("Waiting for GitHub authorization");
     let callback = tokio::time::timeout(
         Duration::from_secs(CALLBACK_TIMEOUT_SECS),
-        wait_for_callback(port),
+        wait_for_callback(listener),
     )
     .await
     .map_err(|_| {
@@ -203,20 +203,46 @@ pub async fn logout() -> Result<()> {
     let creds = credentials::load()?;
 
     let client = reqwest::Client::new();
-    client
+    let server_result = client
         .post(format!("{}/auth/logout", config::backend_url()))
         .json(&serde_json::json!({ "refresh_token": creds.refresh_token }))
         .send()
-        .await
-        .map_err(|e| CliError::Api(format!("Logout request failed: {}", e)))?;
+        .await;
 
+    // Always clear local credentials — the user wants to be logged out.
     credentials::delete()?;
-    output::print_success("Logged out.");
+
+    match server_result {
+        Err(_) => {
+            output::print_success(
+                "Logged out. (Warning: could not reach server to invalidate session)",
+            );
+        }
+        Ok(resp) => {
+            let status = resp.status().as_u16();
+            if status < 400 || status == 401 || status == 404 {
+                // Success, or token was already invalid — both are fine.
+                output::print_success("Logged out.");
+            } else {
+                output::print_success(&format!(
+                    "Logged out. (Warning: server responded with {})",
+                    status
+                ));
+            }
+        }
+    }
+
     Ok(())
 }
 
-pub fn whoami() -> Result<()> {
-    let creds = credentials::load()?;
-    output::print_success(&format!("Logged in as @{}", creds.username));
+pub async fn whoami() -> Result<()> {
+    let pb = output::spinner("Verifying session");
+    let res = crate::client::api_get("/auth/me", &[]).await;
+    pb.finish_and_clear();
+
+    let res = res?;
+    let username = res["data"]["username"].as_str().unwrap_or("unknown");
+    let role = res["data"]["role"].as_str().unwrap_or("analyst");
+    output::print_success(&format!("Logged in as @{} ({})", username, role));
     Ok(())
 }
