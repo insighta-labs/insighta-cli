@@ -1,6 +1,8 @@
-use comfy_table::{Cell, Table, presets::UTF8_FULL};
-use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Duration;
+
+use comfy_table::{Cell, Table, presets::UTF8_FULL};
+use colored::Colorize;
+use indicatif::{ProgressBar, ProgressStyle};
 
 /// Creates and starts a spinner with the given message.
 ///
@@ -45,8 +47,9 @@ pub fn print_table(headers: Vec<&str>, rows: Vec<Vec<String>>) {
     println!("{table}");
 }
 
+
 pub fn print_error(message: &str) {
-    eprintln!("error: {message}");
+    eprintln!("{} {}", "error:".red().bold(), message);
 }
 
 pub fn print_success(message: &str) {

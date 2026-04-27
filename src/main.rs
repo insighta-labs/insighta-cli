@@ -9,6 +9,7 @@ mod credentials;
 mod error;
 mod output;
 mod profiles;
+mod tests;
 
 #[tokio::main]
 async fn main() {
