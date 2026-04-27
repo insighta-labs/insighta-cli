@@ -116,8 +116,8 @@ async fn list(options: ListOptions) -> Result<()> {
     let total = res["total"].as_u64().unwrap_or(0);
     let total_pages = res["total_pages"].as_u64().unwrap_or(1);
     println!(
-        "Showing page {} of {} ({} total)\n",
-        options.page, total_pages, total
+        "Showing page {} of {total_pages} ({total} total)\n",
+        options.page
     );
 
     print_profile_table(&profiles);
@@ -126,7 +126,7 @@ async fn list(options: ListOptions) -> Result<()> {
 
 async fn get(id: &str) -> Result<()> {
     let pb = output::spinner("Fetching profile");
-    let res = api_get(&format!("/api/profiles/{}", id), &[]).await;
+    let res = api_get(&format!("/api/profiles/{id}"), &[]).await;
     pb.finish_and_clear();
 
     let res = res?;
@@ -178,17 +178,14 @@ async fn search(query: &str, page: u32, limit: u32) -> Result<()> {
 
     let total = res["total"].as_u64().unwrap_or(0);
     let total_pages = res["total_pages"].as_u64().unwrap_or(1);
-    println!(
-        "Showing page {} of {} ({} total)\n",
-        page, total_pages, total
-    );
+    println!("Showing page {page} of {total_pages} ({total} total)\n");
 
     print_profile_table(&profiles);
     Ok(())
 }
 
 async fn create(name: &str) -> Result<()> {
-    let pb = output::spinner(&format!("Creating profile for '{}'", name));
+    let pb = output::spinner(&format!("Creating profile for '{name}'"));
     let res = api_post("/api/profiles", serde_json::json!({ "name": name })).await;
     pb.finish_and_clear();
 
@@ -275,7 +272,7 @@ async fn export(
     let bytes = response.bytes().await?;
     std::fs::write(&filename, &bytes)?;
 
-    output::print_success(&format!("Exported to {}", filename));
+    output::print_success(&format!("Exported to {filename}"));
     Ok(())
 }
 

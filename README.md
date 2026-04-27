@@ -38,7 +38,7 @@ insighta logout
 
 ### GitHub OAuth App
 
-Create one at **GitHub → Settings → Developer Settings → OAuth Apps → New OAuth App**. Set the authorization callback URL to `http://127.0.0.1:8182/callback` (or your configured `INSIGHTA_CALLBACK_PORT`). Copy the Client ID and Client Secret into the backend's `.env` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+Create one at **GitHub → Settings → Developer Settings → GitHub Apps → New GitHub App**. Add `http://127.0.0.1:8182/callback` as one of the callback URLs (GitHub Apps support up to 10). Copy the Client ID and Client Secret into the backend's `.env` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
 
 ### Admin Access
 

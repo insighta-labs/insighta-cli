@@ -53,5 +53,5 @@ pub fn print_error(message: &str) {
 }
 
 pub fn print_success(message: &str) {
-    println!("{}", message);
+    println!("{message}");
 }
