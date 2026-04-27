@@ -46,9 +46,9 @@ pub fn print_table(headers: Vec<&str>, rows: Vec<Vec<String>>) {
 }
 
 pub fn print_error(message: &str) {
-    eprintln!("error: {}", message);
+    eprintln!("error: {message}");
 }
 
 pub fn print_success(message: &str) {
-    println!("{}", message);
+    println!("{message}");
 }
