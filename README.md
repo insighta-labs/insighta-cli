@@ -10,6 +10,19 @@
 
 ## Install
 
+### Automatic (Mac & Linux)
+
+This script will install Rust for you if it's missing and set up your PATH automatically.
+
+```bash
+chmod +x install.sh && ./install.sh
+insighta --version
+```
+
+### Manual
+
+If you already have Rust installed:
+
 ```bash
 cargo install --path .
 insighta --version
@@ -63,10 +76,10 @@ Changes take effect the next time that user signs in — no server restart neede
 
 Two environment variables control runtime behavior. Defaults work out of the box for local development.
 
-| Variable | Default | Description |
-|---|---|---|
-| `INSIGHTA_API_URL` | `http://localhost:8000` | Backend API base URL |
-| `INSIGHTA_CALLBACK_PORT` | `8182` | Local OAuth callback port |
+| Variable                 | Default                 | Description               |
+| ------------------------ | ----------------------- | ------------------------- |
+| `INSIGHTA_API_URL`       | `http://localhost:8000` | Backend API base URL      |
+| `INSIGHTA_CALLBACK_PORT` | `8182`                  | Local OAuth callback port |
 
 ---
 
@@ -103,17 +116,17 @@ insighta profiles list --sort-by age --order desc
 insighta profiles list --page 2 --limit 20
 ```
 
-| Flag | Type | Description |
-|---|---|---|
-| `--gender` | `male`\|`female` | Filter by gender |
-| `--country` | ISO α-2 | Filter by country code (e.g. `NG`) |
-| `--age-group` | `child`\|`teenager`\|`adult`\|`senior` | Filter by age group |
-| `--min-age` | integer | Minimum age (inclusive) |
-| `--max-age` | integer | Maximum age (inclusive) |
-| `--sort-by` | `age`\|`created_at`\|`gender_probability` | Sort field |
-| `--order` | `asc`\|`desc` | Sort direction |
-| `--page` | integer | Page number (default: 1) |
-| `--limit` | integer | Results per page (default: 10, max: 50) |
+| Flag          | Type                                      | Description                             |
+| ------------- | ----------------------------------------- | --------------------------------------- |
+| `--gender`    | `male`\|`female`                          | Filter by gender                        |
+| `--country`   | ISO α-2                                   | Filter by country code (e.g. `NG`)      |
+| `--age-group` | `child`\|`teenager`\|`adult`\|`senior`    | Filter by age group                     |
+| `--min-age`   | integer                                   | Minimum age (inclusive)                 |
+| `--max-age`   | integer                                   | Maximum age (inclusive)                 |
+| `--sort-by`   | `age`\|`created_at`\|`gender_probability` | Sort field                              |
+| `--order`     | `asc`\|`desc`                             | Sort direction                          |
+| `--page`      | integer                                   | Page number (default: 1)                |
+| `--limit`     | integer                                   | Results per page (default: 10, max: 50) |
 
 ### Get, Search, Create, Export
 
@@ -196,18 +209,18 @@ Every request attaches `Authorization: Bearer <access_token>` and `X-API-Version
 
 **Access token**
 
-| Property | Value |
-| -------- | ----- |
-| Format   | JWT, signed HS256 |
-| Expiry   | 3 minutes |
+| Property | Value                                          |
+| -------- | ---------------------------------------------- |
+| Format   | JWT, signed HS256                              |
+| Expiry   | 3 minutes                                      |
 | Claims   | `sub` (UUID), `role`, `username`, `iat`, `exp` |
 
 **Refresh token**
 
-| Property    | Value |
-| ----------- | ----- |
-| Format      | 64-char opaque hex string |
-| Expiry      | 5 minutes |
+| Property    | Value                              |
+| ----------- | ---------------------------------- |
+| Format      | 64-char opaque hex string          |
+| Expiry      | 5 minutes                          |
 | Consumption | One-time use — invalidated on read |
 
 **Refresh lifecycle**
@@ -224,10 +237,10 @@ Session expired. Run 'insighta login' to re-authenticate.
 
 The backend enforces roles. The CLI passes the Bearer token and surfaces whatever the API returns.
 
-| Role | Available commands |
-|---|---|
-| `admin` | All commands including `create` and implicit `delete` access |
-| `analyst` | `list`, `get`, `search`, `export` only |
+| Role      | Available commands                                           |
+| --------- | ------------------------------------------------------------ |
+| `admin`   | All commands including `create` and implicit `delete` access |
+| `analyst` | `list`, `get`, `search`, `export` only                       |
 
 Attempting a restricted command as an analyst returns:
 
@@ -246,27 +259,27 @@ The backend `/api/profiles/search?q=` endpoint accepts plain-English queries. Th
 
 **Gender keywords**
 
-| Input tokens | Resolved filter |
-|---|---|
-| `male`, `males`, `man`, `men`, `boy`, `boys` | `gender=male` |
+| Input tokens                                                             | Resolved filter |
+| ------------------------------------------------------------------------ | --------------- |
+| `male`, `males`, `man`, `men`, `boy`, `boys`                             | `gender=male`   |
 | `female`, `females`, `woman`, `women`, `girl`, `girls`, `lady`, `ladies` | `gender=female` |
 
 **Age group keywords**
 
-| Input tokens | Resolved filter |
-|---|---|
-| `child`, `children`, `kid`, `kids` | `age_group=child` |
-| `teenager`, `teen`, `teens` | `age_group=teenager` |
-| `adult`, `adults`, `grownup`, `grownups`, `middle-aged` | `age_group=adult` |
-| `senior`, `seniors`, `old`, `elderly` | `age_group=senior` |
-| `young` | `min_age=16`, `max_age=24` |
+| Input tokens                                            | Resolved filter            |
+| ------------------------------------------------------- | -------------------------- |
+| `child`, `children`, `kid`, `kids`                      | `age_group=child`          |
+| `teenager`, `teen`, `teens`                             | `age_group=teenager`       |
+| `adult`, `adults`, `grownup`, `grownups`, `middle-aged` | `age_group=adult`          |
+| `senior`, `seniors`, `old`, `elderly`                   | `age_group=senior`         |
+| `young`                                                 | `min_age=16`, `max_age=24` |
 
 **Age range bigrams**
 
-| Input pattern | Resolved filter |
-|---|---|
-| `above N`, `over N`, `at least N` | `min_age=N` |
-| `below N`, `under N`, `at most N` | `max_age=N` |
+| Input pattern                     | Resolved filter |
+| --------------------------------- | --------------- |
+| `above N`, `over N`, `at least N` | `min_age=N`     |
+| `below N`, `under N`, `at most N` | `max_age=N`     |
 
 **Country**
 
@@ -274,20 +287,20 @@ Matched via `from [country]` or `in [country]`. Supports multi-word country name
 
 **Sort bigrams**
 
-| Input pattern | Resolved filter |
-|---|---|
-| `top N`, `first N`, `latest N` | `sort=created_at`, `order=desc`, `limit=N` |
-| `last N`, `oldest N`, `bottom N` | `sort=created_at`, `order=asc`, `limit=N` |
+| Input pattern                    | Resolved filter                            |
+| -------------------------------- | ------------------------------------------ |
+| `top N`, `first N`, `latest N`   | `sort=created_at`, `order=desc`, `limit=N` |
+| `last N`, `oldest N`, `bottom N` | `sort=created_at`, `order=asc`, `limit=N`  |
 
 **Example queries**
 
-| Query | Filters applied |
-|---|---|
+| Query                      | Filters applied                                         |
+| -------------------------- | ------------------------------------------------------- |
 | `young males from nigeria` | `gender=male`, `min_age=16`, `max_age=24`, `country=NG` |
-| `females above 30` | `gender=female`, `min_age=30` |
-| `adults in japan` | `age_group=adult`, `country=JP` |
-| `top 5 women` | `gender=female`, `sort=created_at desc`, `limit=5` |
-| `nigeria` | `country=NG` |
+| `females above 30`         | `gender=female`, `min_age=30`                           |
+| `adults in japan`          | `age_group=adult`, `country=JP`                         |
+| `top 5 women`              | `gender=female`, `sort=created_at desc`, `limit=5`      |
+| `nigeria`                  | `country=NG`                                            |
 
 </details>
 
@@ -295,13 +308,13 @@ Matched via `from [country]` or `in [country]`. Supports multi-word country name
 
 ## Error Messages
 
-| Situation | Message |
-|---|---|
-| Not logged in | `Not logged in. Run 'insighta login' first.` |
+| Situation       | Message                                                     |
+| --------------- | ----------------------------------------------------------- |
+| Not logged in   | `Not logged in. Run 'insighta login' first.`                |
 | Session expired | `Session expired. Run 'insighta login' to re-authenticate.` |
-| API error | `API error: <backend message>` |
-| Network failure | `HTTP error: <reqwest message>` |
-| IO failure | `IO error: <os message>` |
+| API error       | `API error: <backend message>`                              |
+| Network failure | `HTTP error: <reqwest message>`                             |
+| IO failure      | `IO error: <os message>`                                    |
 
 ---
 
