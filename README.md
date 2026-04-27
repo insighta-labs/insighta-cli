@@ -34,11 +34,11 @@ insighta logout
 
 - Rust 1.85+
 - A running instance of `insighta-api` (see the [backend repo](../insighta-api/README.md))
-- A GitHub OAuth App with `http://localhost:<INSIGHTA_CALLBACK_PORT>/callback` registered as a callback URL
+- A GitHub OAuth App with `http://127.0.0.1:<INSIGHTA_CALLBACK_PORT>/callback` registered as a callback URL
 
 ### GitHub OAuth App
 
-Create one at **GitHub → Settings → Developer Settings → OAuth Apps → New OAuth App**. Set the authorization callback URL to `http://localhost:8182/callback` (or your configured `INSIGHTA_CALLBACK_PORT`). Copy the Client ID and Client Secret into the backend's `.env` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+Create one at **GitHub → Settings → Developer Settings → OAuth Apps → New OAuth App**. Set the authorization callback URL to `http://127.0.0.1:8182/callback` (or your configured `INSIGHTA_CALLBACK_PORT`). Copy the Client ID and Client Secret into the backend's `.env` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
 
 ### Admin Access
 
@@ -75,7 +75,7 @@ Two environment variables control runtime behavior. Defaults work out of the box
 ```bash
 insighta login     # GitHub OAuth with PKCE — opens browser
 insighta logout    # Invalidates session server-side, deletes local credentials
-insighta whoami    # Prints currently logged-in username
+insighta whoami    # Validates session against backend, prints @username (role)
 ```
 
 Credentials are stored at `~/.insighta/credentials.json`:
@@ -168,7 +168,7 @@ The CLI starts a local TCP server on the callback port, then opens:
 <API_URL>/auth/github
   ?state=<state>
   &code_challenge=<challenge>
-  &redirect_uri=http://localhost:<port>/callback
+  &redirect_uri=http://127.0.0.1:<port>/callback
 ```
 
 **Callback capture**
