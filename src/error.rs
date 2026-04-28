@@ -19,31 +19,33 @@ pub enum CliError {
 }
 
 impl fmt::Display for CliError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CliError::NotLoggedIn => write!(f, "Not logged in. Run `insighta login` first."),
+            CliError::NotLoggedIn => {
+                write!(formatter, "Not logged in. Run `insighta login` first.")
+            }
             CliError::TokenExpired => {
                 write!(
-                    f,
+                    formatter,
                     "Session expired. Run `insighta login` to re-authenticate."
                 )
             }
-            CliError::Api(msg) => write!(f, "API error: {msg}"),
-            CliError::Io(e) => write!(f, "IO error: {e}"),
-            CliError::Http(e) => write!(f, "HTTP error: {e}"),
+            CliError::Api(msg) => write!(formatter, "API error: {msg}"),
+            CliError::Io(err) => write!(formatter, "IO error: {err}"),
+            CliError::Http(err) => write!(formatter, "HTTP error: {err}"),
         }
     }
 }
 
 impl From<std::io::Error> for CliError {
-    fn from(e: std::io::Error) -> Self {
-        CliError::Io(e)
+    fn from(err: std::io::Error) -> Self {
+        CliError::Io(err)
     }
 }
 
 impl From<reqwest::Error> for CliError {
-    fn from(e: reqwest::Error) -> Self {
-        CliError::Http(e)
+    fn from(err: reqwest::Error) -> Self {
+        CliError::Http(err)
     }
 }
 

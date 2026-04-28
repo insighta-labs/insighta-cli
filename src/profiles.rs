@@ -71,50 +71,50 @@ pub async fn handle(cmd: ProfileCommands) -> Result<()> {
 }
 
 async fn list(options: ListOptions) -> Result<()> {
-    let pb = output::spinner("Fetching profiles");
+    let spinner = output::spinner("Fetching profiles");
 
     let page_s = options.page.to_string();
     let limit_s = options.limit.to_string();
-    let min_age_s = options.min_age.map(|v| v.to_string());
-    let max_age_s = options.max_age.map(|v| v.to_string());
+    let min_age_s = options.min_age.map(|val| val.to_string());
+    let max_age_s = options.max_age.map(|val| val.to_string());
 
     let mut query: Vec<(&str, &str)> = vec![("page", &page_s), ("limit", &limit_s)];
 
-    if let Some(ref g) = options.gender {
-        query.push(("gender", g));
+    if let Some(ref gender) = options.gender {
+        query.push(("gender", gender));
     }
-    if let Some(ref c) = options.country {
-        query.push(("country_id", c));
+    if let Some(ref country) = options.country {
+        query.push(("country_id", country));
     }
-    if let Some(ref a) = options.age_group {
-        query.push(("age_group", a));
+    if let Some(ref age_group) = options.age_group {
+        query.push(("age_group", age_group));
     }
-    if let Some(ref m) = min_age_s {
-        query.push(("min_age", m));
+    if let Some(ref age) = min_age_s {
+        query.push(("min_age", age));
     }
-    if let Some(ref m) = max_age_s {
-        query.push(("max_age", m));
+    if let Some(ref age) = max_age_s {
+        query.push(("max_age", age));
     }
-    if let Some(ref s) = options.sort_by {
-        query.push(("sort_by", s));
+    if let Some(ref sort) = options.sort_by {
+        query.push(("sort_by", sort));
     }
-    if let Some(ref o) = options.order {
-        query.push(("order", o));
+    if let Some(ref order) = options.order {
+        query.push(("order", order));
     }
 
-    let res = api_get("/api/profiles", &query).await;
-    pb.finish_and_clear();
+    let api_response = api_get("/api/profiles", &query).await;
+    spinner.finish_and_clear();
 
-    let res = res?;
-    let profiles = res["data"].as_array().cloned().unwrap_or_default();
+    let api_response = api_response?;
+    let profiles = api_response["data"].as_array().cloned().unwrap_or_default();
 
     if profiles.is_empty() {
         output::print_success("No profiles found.");
         return Ok(());
     }
 
-    let total = res["total"].as_u64().unwrap_or(0);
-    let total_pages = res["total_pages"].as_u64().unwrap_or(1);
+    let total = api_response["total"].as_u64().unwrap_or(0);
+    let total_pages = api_response["total_pages"].as_u64().unwrap_or(1);
     println!(
         "Showing page {} of {total_pages} ({total} total)\n",
         options.page
@@ -125,32 +125,32 @@ async fn list(options: ListOptions) -> Result<()> {
 }
 
 async fn get(id: &str) -> Result<()> {
-    let pb = output::spinner("Fetching profile");
-    let res = api_get(&format!("/api/profiles/{id}"), &[]).await;
-    pb.finish_and_clear();
+    let spinner = output::spinner("Fetching profile");
+    let api_response = api_get(&format!("/api/profiles/{id}"), &[]).await;
+    spinner.finish_and_clear();
 
-    let res = res?;
-    let p = &res["data"];
+    let api_response = api_response?;
+    let profile = &api_response["data"];
 
     output::print_table(
         vec!["Field", "Value"],
         vec![
-            vec!["ID".into(), str_val(p, "id")],
-            vec!["Name".into(), str_val(p, "name")],
-            vec!["Gender".into(), str_val(p, "gender")],
+            vec!["ID".into(), str_val(profile, "id")],
+            vec!["Name".into(), str_val(profile, "name")],
+            vec!["Gender".into(), str_val(profile, "gender")],
             vec![
                 "Gender Probability".into(),
-                str_val(p, "gender_probability"),
+                str_val(profile, "gender_probability"),
             ],
-            vec!["Age".into(), str_val(p, "age")],
-            vec!["Age Group".into(), str_val(p, "age_group")],
-            vec!["Country".into(), str_val(p, "country_name")],
-            vec!["Country Code".into(), str_val(p, "country_id")],
+            vec!["Age".into(), str_val(profile, "age")],
+            vec!["Age Group".into(), str_val(profile, "age_group")],
+            vec!["Country".into(), str_val(profile, "country_name")],
+            vec!["Country Code".into(), str_val(profile, "country_id")],
             vec![
                 "Country Probability".into(),
-                str_val(p, "country_probability"),
+                str_val(profile, "country_probability"),
             ],
-            vec!["Created At".into(), str_val(p, "created_at")],
+            vec!["Created At".into(), str_val(profile, "created_at")],
         ],
     );
 
@@ -158,26 +158,26 @@ async fn get(id: &str) -> Result<()> {
 }
 
 async fn search(query: &str, page: u32, limit: u32) -> Result<()> {
-    let pb = output::spinner("Searching profiles");
+    let spinner = output::spinner("Searching profiles");
     let page_s = page.to_string();
     let limit_s = limit.to_string();
-    let res = api_get(
+    let api_response = api_get(
         "/api/profiles/search",
         &[("q", query), ("page", &page_s), ("limit", &limit_s)],
     )
     .await;
-    pb.finish_and_clear();
+    spinner.finish_and_clear();
 
-    let res = res?;
-    let profiles = res["data"].as_array().cloned().unwrap_or_default();
+    let api_response = api_response?;
+    let profiles = api_response["data"].as_array().cloned().unwrap_or_default();
 
     if profiles.is_empty() {
         output::print_success("No profiles found.");
         return Ok(());
     }
 
-    let total = res["total"].as_u64().unwrap_or(0);
-    let total_pages = res["total_pages"].as_u64().unwrap_or(1);
+    let total = api_response["total"].as_u64().unwrap_or(0);
+    let total_pages = api_response["total_pages"].as_u64().unwrap_or(1);
     println!("Showing page {page} of {total_pages} ({total} total)\n");
 
     print_profile_table(&profiles);
@@ -185,22 +185,22 @@ async fn search(query: &str, page: u32, limit: u32) -> Result<()> {
 }
 
 async fn create(name: &str) -> Result<()> {
-    let pb = output::spinner(&format!("Creating profile for '{name}'"));
-    let res = api_post("/api/profiles", serde_json::json!({ "name": name })).await;
-    pb.finish_and_clear();
+    let spinner = output::spinner(&format!("Creating profile for '{name}'"));
+    let api_response = api_post("/api/profiles", serde_json::json!({ "name": name })).await;
+    spinner.finish_and_clear();
 
-    let res = res?;
-    let p = &res["data"];
+    let api_response = api_response?;
+    let profile = &api_response["data"];
 
     output::print_success("Profile created.");
     output::print_table(
         vec!["Field", "Value"],
         vec![
-            vec!["ID".into(), str_val(p, "id")],
-            vec!["Name".into(), str_val(p, "name")],
-            vec!["Gender".into(), str_val(p, "gender")],
-            vec!["Age".into(), str_val(p, "age")],
-            vec!["Country".into(), str_val(p, "country_name")],
+            vec!["ID".into(), str_val(profile, "id")],
+            vec!["Name".into(), str_val(profile, "name")],
+            vec!["Gender".into(), str_val(profile, "gender")],
+            vec!["Age".into(), str_val(profile, "age")],
+            vec!["Country".into(), str_val(profile, "country_name")],
         ],
     );
 
@@ -218,37 +218,36 @@ async fn export(
     sort_by: Option<String>,
     order: Option<String>,
 ) -> Result<()> {
-    let pb = output::spinner("Exporting profiles");
+    let spinner = output::spinner("Exporting profiles");
 
-    let min_age_s = min_age.map(|v| v.to_string());
-    let max_age_s = max_age.map(|v| v.to_string());
+    let min_age_s = min_age.map(|val| val.to_string());
+    let max_age_s = max_age.map(|val| val.to_string());
 
     let mut query: Vec<(&str, &str)> = vec![("format", format)];
-    if let Some(ref g) = gender {
-        query.push(("gender", g));
+    if let Some(ref gender) = gender {
+        query.push(("gender", gender));
     }
-    if let Some(ref c) = country {
-        query.push(("country_id", c));
+    if let Some(ref country) = country {
+        query.push(("country_id", country));
     }
-    if let Some(ref a) = age_group {
-        query.push(("age_group", a));
+    if let Some(ref age_group) = age_group {
+        query.push(("age_group", age_group));
     }
-    if let Some(ref m) = min_age_s {
-        query.push(("min_age", m));
+    if let Some(ref age) = min_age_s {
+        query.push(("min_age", age));
     }
-    if let Some(ref m) = max_age_s {
-        query.push(("max_age", m));
+    if let Some(ref age) = max_age_s {
+        query.push(("max_age", age));
     }
-    if let Some(ref s) = sort_by {
-        query.push(("sort_by", s));
+    if let Some(ref sort) = sort_by {
+        query.push(("sort_by", sort));
     }
-    if let Some(ref o) = order {
-        query.push(("order", o));
+    if let Some(ref order) = order {
+        query.push(("order", order));
     }
 
-    // raw_get handles auth and token refresh while returning the binary body directly.
     let response = raw_get("/api/profiles/export", &query).await;
-    pb.finish_and_clear();
+    spinner.finish_and_clear();
 
     let response = response?;
 
@@ -264,9 +263,9 @@ async fn export(
     let filename = response
         .headers()
         .get("content-disposition")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.split("filename=").nth(1))
-        .map(|s| s.trim_matches('"').to_string())
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| val.split("filename=").nth(1))
+        .map(|filename_str| filename_str.trim_matches('"').to_string())
         .unwrap_or_else(|| "profiles_export.csv".to_string());
 
     let bytes = response.bytes().await?;
@@ -289,26 +288,26 @@ fn print_profile_table(profiles: &[Value]) {
         ],
         profiles
             .iter()
-            .map(|p| {
+            .map(|profile_json| {
                 vec![
-                    str_val(p, "id"),
-                    str_val(p, "name"),
-                    str_val(p, "gender"),
-                    str_val(p, "age"),
-                    str_val(p, "age_group"),
-                    str_val(p, "country_name"),
-                    str_val(p, "created_at"),
+                    str_val(profile_json, "id"),
+                    str_val(profile_json, "name"),
+                    str_val(profile_json, "gender"),
+                    str_val(profile_json, "age"),
+                    str_val(profile_json, "age_group"),
+                    str_val(profile_json, "country_name"),
+                    str_val(profile_json, "created_at"),
                 ]
             })
             .collect(),
     );
 }
 
-fn str_val(v: &Value, key: &str) -> String {
+pub fn str_val(v: &Value, key: &str) -> String {
     match &v[key] {
-        Value::String(s) => s.clone(),
-        Value::Number(n) => n.to_string(),
-        Value::Bool(b) => b.to_string(),
+        Value::String(string_val) => string_val.clone(),
+        Value::Number(number_val) => number_val.to_string(),
+        Value::Bool(bool_val) => bool_val.to_string(),
         Value::Null => "-".to_string(),
         other => other.to_string(),
     }

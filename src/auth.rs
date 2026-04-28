@@ -35,7 +35,9 @@ fn extract_username_from_token(token: &str) -> Option<String> {
     let payload = token.split('.').nth(1)?;
     let decoded = URL_SAFE_NO_PAD.decode(payload).ok()?;
     let json: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
-    json["username"].as_str().map(|s| s.to_string())
+    json["username"]
+        .as_str()
+        .map(|username| username.to_string())
 }
 
 async fn wait_for_callback(listener: tokio::net::TcpListener) -> Result<(String, String)> {
@@ -55,7 +57,6 @@ async fn wait_for_callback(listener: tokio::net::TcpListener) -> Result<(String,
         .await
         .map_err(CliError::Io)?;
 
-    // Request line: GET /callback?code=xxx&state=yyy HTTP/1.1
     let path = request_line
         .split_whitespace()
         .nth(1)
@@ -113,21 +114,21 @@ pub async fn login() -> Result<()> {
 
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}"))
         .await
-        .map_err(|e| {
+        .map_err(|err| {
             CliError::Io(std::io::Error::new(
-                e.kind(),
-                format!("Could not bind to port {port}: {e}"),
+                err.kind(),
+                format!("Could not bind to port {port}: {err}"),
             ))
         })?;
 
     println!("Opening GitHub in your browser...");
-    open::that(&auth_url).map_err(|e| {
+    open::that(&auth_url).map_err(|err| {
         CliError::Io(std::io::Error::other(format!(
-            "Could not open browser: {e}"
+            "Could not open browser: {err}"
         )))
     })?;
 
-    let pb = output::spinner("Waiting for GitHub authorization");
+    let spinner = output::spinner("Waiting for GitHub authorization");
     let callback = tokio::time::timeout(
         Duration::from_secs(CALLBACK_TIMEOUT_SECS),
         wait_for_callback(listener),
@@ -138,16 +139,16 @@ pub async fn login() -> Result<()> {
     })?;
 
     let (code, returned_state) = callback?;
-    pb.finish_and_clear();
+    spinner.finish_and_clear();
 
     if returned_state != state {
         return Err(CliError::Api("State mismatch — possible CSRF".to_string()));
     }
 
-    let pb = output::spinner("Completing login");
+    let spinner = output::spinner("Completing login");
 
     let client = reqwest::Client::new();
-    let res = client
+    let token_response = client
         .get(format!("{backend}/auth/github/callback"))
         .query(&[
             ("code", code.as_str()),
@@ -160,23 +161,23 @@ pub async fn login() -> Result<()> {
         .await
         .map_err(|_| CliError::Api("Failed to parse login response".to_string()))?;
 
-    pb.finish_and_clear();
+    spinner.finish_and_clear();
 
-    let status = res["status"].as_str().unwrap_or("error");
-    if status != "success" {
-        let msg = res["message"]
+    let login_status = token_response["status"].as_str().unwrap_or("error");
+    if login_status != "success" {
+        let msg = token_response["message"]
             .as_str()
             .unwrap_or("Login failed")
             .to_string();
         return Err(CliError::Api(msg));
     }
 
-    let access_token = res["access_token"]
+    let access_token = token_response["access_token"]
         .as_str()
         .ok_or_else(|| CliError::Api("Missing access_token in response".to_string()))?
         .to_string();
 
-    let refresh_token = res["refresh_token"]
+    let refresh_token = token_response["refresh_token"]
         .as_str()
         .ok_or_else(|| CliError::Api("Missing refresh_token in response".to_string()))?
         .to_string();
@@ -230,13 +231,15 @@ pub async fn logout() -> Result<()> {
 }
 
 pub async fn whoami() -> Result<()> {
-    let pb = output::spinner("Verifying session");
-    let res = crate::client::api_get("/auth/me", &[]).await;
-    pb.finish_and_clear();
+    let spinner = output::spinner("Verifying session");
+    let me_response = crate::client::api_get("/auth/me", &[]).await;
+    spinner.finish_and_clear();
 
-    let res = res?;
-    let username = res["data"]["username"].as_str().unwrap_or("unknown");
-    let role = res["data"]["role"].as_str().unwrap_or("analyst");
+    let me_response = me_response?;
+    let username = me_response["data"]["username"]
+        .as_str()
+        .unwrap_or("unknown");
+    let role = me_response["data"]["role"].as_str().unwrap_or("analyst");
     output::print_success(&format!("Logged in as @{username} ({role})"));
     Ok(())
 }

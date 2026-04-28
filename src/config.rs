@@ -1,17 +1,11 @@
 use std::env::var;
 
-/// Returns the backend API base URL.
-///
-/// Reads `INSIGHTA_API_URL` from the environment.
-/// Falls back to `http://localhost:8000` if the variable is not set.
+/// The backend API base URL.
 pub fn backend_url() -> String {
     var("INSIGHTA_API_URL").unwrap_or_else(|_| "http://localhost:8000".to_string())
 }
 
-/// Returns the local callback server port used during the OAuth flow.
-///
-/// Reads `INSIGHTA_CALLBACK_PORT` from the environment.
-/// Falls back to `8182` if the variable is absent or unparseable.
+/// The local callback server port.
 pub fn callback_port() -> u16 {
     var("INSIGHTA_CALLBACK_PORT")
         .ok()

@@ -1,11 +1,18 @@
 use reqwest::{Method, Response};
 use serde_json::Value;
+use std::sync::OnceLock;
 
 use crate::{
     config,
     credentials::{self, Credentials},
     error::{CliError, Result},
 };
+
+static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+fn get_client() -> &'static reqwest::Client {
+    CLIENT.get_or_init(reqwest::Client::new)
+}
 
 #[derive(serde::Deserialize)]
 struct RefreshResponse {
@@ -14,11 +21,11 @@ struct RefreshResponse {
     refresh_token: Option<String>,
 }
 
-async fn refresh_credentials(creds: &Credentials) -> Result<Credentials> {
-    let client = reqwest::Client::new();
+async fn refresh_credentials(credentials: &Credentials) -> Result<Credentials> {
+    let client = get_client();
     let res = client
         .post(format!("{}/auth/refresh", config::backend_url()))
-        .json(&serde_json::json!({ "refresh_token": creds.refresh_token }))
+        .json(&serde_json::json!({ "refresh_token": credentials.refresh_token }))
         .send()
         .await?
         .json::<RefreshResponse>()
@@ -33,11 +40,31 @@ async fn refresh_credentials(creds: &Credentials) -> Result<Credentials> {
     let new_creds = Credentials {
         access_token: res.access_token.ok_or(CliError::TokenExpired)?,
         refresh_token: res.refresh_token.ok_or(CliError::TokenExpired)?,
-        username: creds.username.clone(),
+        username: credentials.username.clone(),
     };
 
     credentials::save(&new_creds)?;
     Ok(new_creds)
+}
+
+/// Base function to perform an authenticated request with automatic 401 refresh/retry.
+async fn authenticated_request(
+    method: Method,
+    path: &str,
+    query: &[(&str, &str)],
+    body: &Option<Value>,
+) -> Result<Response> {
+    let mut credentials = credentials::load()?;
+    let client = get_client();
+
+    let response = send_request(client, &method, path, query, body, &credentials).await?;
+
+    if response.status().as_u16() == 401 {
+        credentials = refresh_credentials(&credentials).await?;
+        return send_request(client, &method, path, query, body, &credentials).await;
+    }
+
+    Ok(response)
 }
 
 pub async fn request(
@@ -46,33 +73,13 @@ pub async fn request(
     query: &[(&str, &str)],
     body: Option<Value>,
 ) -> Result<Value> {
-    let mut creds = credentials::load()?;
-    let client = reqwest::Client::new();
-
-    let response = send_request(&client, &method, path, query, &body, &creds).await?;
-
-    if response.status().as_u16() == 401 {
-        creds = refresh_credentials(&creds).await?;
-        let retried = send_request(&client, &method, path, query, &body, &creds).await?;
-        return parse_response(retried).await;
-    }
-
+    let response = authenticated_request(method, path, query, &body).await?;
     parse_response(response).await
 }
 
 /// Sends an authenticated GET and returns the raw response without parsing JSON.
 pub async fn raw_get(path: &str, query: &[(&str, &str)]) -> Result<Response> {
-    let mut creds = credentials::load()?;
-    let client = reqwest::Client::new();
-
-    let response = send_request(&client, &Method::GET, path, query, &None, &creds).await?;
-
-    if response.status().as_u16() == 401 {
-        creds = refresh_credentials(&creds).await?;
-        return send_request(&client, &Method::GET, path, query, &None, &creds).await;
-    }
-
-    Ok(response)
+    authenticated_request(Method::GET, path, query, &None).await
 }
 
 async fn send_request(
@@ -81,20 +88,23 @@ async fn send_request(
     path: &str,
     query: &[(&str, &str)],
     body: &Option<Value>,
-    creds: &Credentials,
+    credentials: &Credentials,
 ) -> Result<Response> {
     let url = format!("{}{}", config::backend_url(), path);
-    let mut req = client
+    let mut request_builder = client
         .request(method.clone(), &url)
-        .header("Authorization", format!("Bearer {}", creds.access_token))
+        .header(
+            "Authorization",
+            format!("Bearer {}", credentials.access_token),
+        )
         .header("X-API-Version", "1")
         .query(query);
 
-    if let Some(b) = body {
-        req = req.json(b);
+    if let Some(json_body) = body {
+        request_builder = request_builder.json(json_body);
     }
 
-    req.send().await.map_err(CliError::Http)
+    request_builder.send().await.map_err(CliError::Http)
 }
 
 async fn parse_response(response: Response) -> Result<Value> {
