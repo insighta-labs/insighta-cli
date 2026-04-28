@@ -60,7 +60,7 @@ pub fn save(creds: &Credentials) -> Result<()> {
     }
 
     let raw = serde_json::to_string_pretty(creds)
-        .map_err(|e| CliError::Io(std::io::Error::other(e.to_string())))?;
+        .map_err(|err| CliError::Io(std::io::Error::other(err.to_string())))?;
 
     std::fs::write(&path, raw)?;
     Ok(())

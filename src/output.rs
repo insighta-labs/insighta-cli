@@ -15,18 +15,18 @@ use indicatif::{ProgressBar, ProgressStyle};
 /// # Returns
 ///
 /// Returns a running `ProgressBar` that must be explicitly stopped
-/// (e.g., via `pb.finish_and_clear()`) when the operation completes.
+/// (e.g., via `spinner.finish_and_clear()`) when the operation completes.
 pub fn spinner(message: &str) -> ProgressBar {
-    let pb = ProgressBar::new_spinner();
-    pb.set_style(
+    let spinner = ProgressBar::new_spinner();
+    spinner.set_style(
         ProgressStyle::default_spinner()
             .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
             .template("{spinner:.cyan} {msg}")
             .unwrap(),
     );
-    pb.set_message(message.to_string());
-    pb.enable_steady_tick(Duration::from_millis(80));
-    pb
+    spinner.set_message(message.to_string());
+    spinner.enable_steady_tick(Duration::from_millis(80));
+    spinner
 }
 
 /// Renders a formatted UTF-8 table to stdout with the given headers and rows.

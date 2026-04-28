@@ -24,8 +24,8 @@ async fn main() {
         Commands::Profiles { command } => profiles::handle(command).await,
     };
 
-    if let Err(e) = result {
-        output::print_error(&e.to_string());
+    if let Err(err) = result {
+        output::print_error(&err.to_string());
         std::process::exit(1);
     }
 }
