@@ -13,6 +13,8 @@ mod tests;
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().ok();
+
     let cli = Cli::parse();
 
     let result = match cli.command {

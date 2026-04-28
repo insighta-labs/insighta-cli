@@ -74,12 +74,14 @@ Changes take effect the next time that user signs in — no server restart neede
 
 ## Configuration
 
-Two environment variables control runtime behavior. Defaults work out of the box for local development.
+Two environment variables control runtime behavior. Defaults work out of the box for local development. Variables can be set via a `.env` file in the working directory or exported in the shell.
 
 | Variable                 | Default                 | Description               |
 | ------------------------ | ----------------------- | ------------------------- |
 | `INSIGHTA_API_URL`       | `http://localhost:8000` | Backend API base URL      |
 | `INSIGHTA_CALLBACK_PORT` | `8182`                  | Local OAuth callback port |
+
+> The CLI loads `.env` automatically via [dotenvy](https://crates.io/crates/dotenvy) at startup.
 
 ---
 
