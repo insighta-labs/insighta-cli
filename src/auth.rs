@@ -51,7 +51,36 @@ async fn wait_for_callback(listener: tokio::net::TcpListener) -> Result<(String,
         .map_err(CliError::Io)?;
 
     let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n\
-            <html><body><p>Authentication complete. You can close this tab.</p></body></html>";
+<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title>Insighta Labs - Authentication</title>\n\
+    <style>\n\
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@400;700&display=swap');\n\
+        body { background: #2a1b38; color: #fdf6e3; font-family: 'Space Mono', 'Courier New', monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }\n\
+        .card { background: #422d5b; border: none; border-radius: 8px; padding: 52px; box-shadow: 6px 6px 0px #000; max-width: 520px; width: calc(100% - 40px); }\n\
+        @media (max-width: 480px) { .card { padding: 32px 20px; } }\n\
+        .title { font-size: 36px; font-weight: 900; font-family: 'Anton', 'Impact', 'Arial Black', sans-serif; letter-spacing: 2px; color: #ff7b00; margin-bottom: 10px; }\n\
+        .subtitle { color: #fdf6e3; font-size: 17px; font-weight: bold; letter-spacing: 1px; margin-bottom: 42px; text-transform: uppercase; border-bottom: 3px solid #000; padding-bottom: 16px; display: inline-block; }\n\
+        .message { color: #fdf6e3; font-size: 18px; line-height: 1.6; font-weight: bold; }\n\
+        svg { margin-bottom: 31px; stroke: #ff7b00; }\n\
+        .btn { margin-top: 32px; background: transparent; border: 3px solid #ff7b00; color: #ff7b00; padding: 12px 24px; font-family: 'Space Mono', monospace; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; border-radius: 4px; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class=\"card\">\n\
+        <svg width=\"62\" height=\"62\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"square\" stroke-linejoin=\"miter\">\n\
+            <path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"></path>\n\
+            <polyline points=\"22 4 12 14.01 9 11.01\"></polyline>\n\
+        </svg>\n\
+        <div class=\"title\">INSIGHTA LABS+</div>\n\
+        <div class=\"subtitle\">Intelligence Platform</div>\n\
+        <div class=\"message\">Authentication complete.<br><br>You can now return to the CLI. This tab will close automatically in 3 seconds.</div>\n\
+        <button onclick=\"window.close()\" class=\"btn\">Close Tab</button>\n\
+    </div>\n\
+    <script>setTimeout(() => window.close(), 3000);</script>\n\
+</body>\n\
+</html>";
     write_half
         .write_all(response.as_bytes())
         .await
